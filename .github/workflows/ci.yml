@@ -21,7 +21,7 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm ci
+        run: npm install  # <-- Diubah dari npm ci ke npm install
 
       - name: Build Next.js Application
         run: npm run build
