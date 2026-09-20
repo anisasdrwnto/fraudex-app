@@ -1,43 +1,42 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useSession, SessionProvider } from "next-auth/react";
+import { useState, useRef } from "react";
+import { useSession } from "next-auth/react";
 import { Pencil, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
-function ProfileContent() {
+export default function ProfilePage() {
   const { data: session, status } = useSession();
   
-  // State untuk form
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [about, setAbout] = useState("");
-  const [photo, setPhoto] = useState("/user-placeholder.png"); // Ganti dengan path ilustrasi 3D bawaan jika ada
+  // Inisialisasi state langsung dari localStorage / session (Aman, tanpa useEffect setState)
+  const [firstName, setFirstName] = useState(() => {
+    if (typeof window === "undefined") return "";
+    const savedFirst = localStorage.getItem("fraudex_first_name");
+    if (savedFirst) return savedFirst;
+    if (session?.user?.name) return session.user.name.split(" ")[0] || "";
+    return "";
+  });
+
+  const [lastName, setLastName] = useState(() => {
+    if (typeof window === "undefined") return "";
+    const savedLast = localStorage.getItem("fraudex_last_name");
+    if (savedLast) return savedLast;
+    if (session?.user?.name) return session.user.name.split(" ").slice(1).join(" ") || "";
+    return "";
+  });
+
+  const [about, setAbout] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("fraudex_about") || "";
+  });
+
+  const [photo, setPhoto] = useState(() => {
+    if (typeof window === "undefined") return "/user-placeholder.png";
+    return localStorage.getItem("fraudex_photo") || "/user-placeholder.png";
+  });
   
   const [isSaved, setIsSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Ambil data dari Session / LocalStorage
-  useEffect(() => {
-    // Membungkus dengan setTimeout untuk menghindari error "synchronous setState" dari compiler
-    const timer = setTimeout(() => {
-      const savedFirst = localStorage.getItem("fraudex_first_name");
-      const savedLast = localStorage.getItem("fraudex_last_name");
-      const savedAbout = localStorage.getItem("fraudex_about");
-      const savedPhoto = localStorage.getItem("fraudex_photo");
-
-      if (session?.user?.name) {
-        const nameParts = session.user.name.split(" ");
-        setFirstName(savedFirst || nameParts[0] || "");
-        setLastName(savedLast || nameParts.slice(1).join(" ") || "");
-      }
-
-      if (savedAbout) setAbout(savedAbout);
-      if (savedPhoto) setPhoto(savedPhoto);
-    }, 0);
-
-    return () => clearTimeout(timer);
-  }, [session]);
 
   // Handle Upload Foto (Preview Realtime)
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,11 +64,16 @@ function ProfileContent() {
     setTimeout(() => setIsSaved(false), 3000);
   };
 
-  if (status === "loading") return null; // Sembunyikan saat loading session
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen bg-[#F3F4F6] flex items-center justify-center font-[family-name:var(--font-poppins)]">
+        <p className="text-gray-500 text-sm animate-pulse">Memuat profil...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F3F4F6] flex items-center justify-center p-4 md:p-8 font-[family-name:var(--font-poppins)]">
-      
       <div className="w-full max-w-4xl bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8 md:p-12 relative">
         
         {/* Label Top (Presented by Fraudex) */}
@@ -89,7 +93,6 @@ function ProfileContent() {
           {/* BAGIAN KIRI: FOTO PROFIL */}
           <div className="shrink-0 flex flex-col items-center md:items-start">
             <div className="relative w-48 h-48 md:w-56 md:h-56">
-              {/* Gambar Profil */}
               <div 
                 className="w-full h-full rounded-[2rem] bg-blue-100 overflow-hidden shadow-inner flex items-center justify-center"
                 style={{
@@ -98,13 +101,11 @@ function ProfileContent() {
                   backgroundPosition: "center"
                 }}
               >
-                {/* Fallback jika tidak ada foto awal */}
                 {photo === "/user-placeholder.png" && (
-                  <span className="text-6xl text-blue-300 font-bold">{firstName.charAt(0)}</span>
+                  <span className="text-6xl text-blue-300 font-bold">{firstName.charAt(0) || "U"}</span>
                 )}
               </div>
 
-              {/* Tombol Pensil untuk Upload */}
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -113,7 +114,6 @@ function ProfileContent() {
                 <Pencil size={20} />
               </button>
               
-              {/* Input File Tersembunyi */}
               <input
                 type="file"
                 ref={fileInputRef}
@@ -196,14 +196,5 @@ function ProfileContent() {
         </form>
       </div>
     </div>
-  );
-}
-
-// Wrapper Session Provider
-export default function ProfilePage() {
-  return (
-    <SessionProvider>
-      <ProfileContent />
-    </SessionProvider>
   );
 }
