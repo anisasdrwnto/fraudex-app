@@ -1,44 +1,36 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { useSession } from "next-auth/react";
+export const dynamic = "force-dynamic";
+
+import { useState, useRef, useEffect } from "react";
 import { Pencil, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
 export default function ProfilePage() {
-  const { data: session, status } = useSession();
-  
-  // Inisialisasi state langsung dari localStorage / session (Aman, tanpa useEffect setState)
-  const [firstName, setFirstName] = useState(() => {
-    if (typeof window === "undefined") return "";
-    const savedFirst = localStorage.getItem("fraudex_first_name");
-    if (savedFirst) return savedFirst;
-    if (session?.user?.name) return session.user.name.split(" ")[0] || "";
-    return "";
-  });
-
-  const [lastName, setLastName] = useState(() => {
-    if (typeof window === "undefined") return "";
-    const savedLast = localStorage.getItem("fraudex_last_name");
-    if (savedLast) return savedLast;
-    if (session?.user?.name) return session.user.name.split(" ").slice(1).join(" ") || "";
-    return "";
-  });
-
-  const [about, setAbout] = useState(() => {
-    if (typeof window === "undefined") return "";
-    return localStorage.getItem("fraudex_about") || "";
-  });
-
-  const [photo, setPhoto] = useState(() => {
-    if (typeof window === "undefined") return "/user-placeholder.png";
-    return localStorage.getItem("fraudex_photo") || "/user-placeholder.png";
-  });
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("email@contoh.com");
+  const [about, setAbout] = useState("");
+  const [photo, setPhoto] = useState("/user-placeholder.png");
   
   const [isSaved, setIsSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Handle Upload Foto (Preview Realtime)
+  // Ambil data langsung dari localStorage setelah halaman terbuka di browser
+  useEffect(() => {
+    const savedFirst = localStorage.getItem("fraudex_first_name");
+    const savedLast = localStorage.getItem("fraudex_last_name");
+    const savedEmail = localStorage.getItem("fraudex_email");
+    const savedAbout = localStorage.getItem("fraudex_about");
+    const savedPhoto = localStorage.getItem("fraudex_photo");
+
+    if (savedFirst) setFirstName(savedFirst);
+    if (savedLast) setLastName(savedLast);
+    if (savedEmail) setEmail(savedEmail);
+    if (savedAbout) setAbout(savedAbout);
+    if (savedPhoto) setPhoto(savedPhoto);
+  }, []);
+
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -51,7 +43,6 @@ export default function ProfilePage() {
     }
   };
 
-  // Handle Simpan
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     localStorage.setItem("fraudex_first_name", firstName);
@@ -63,14 +54,6 @@ export default function ProfilePage() {
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
   };
-
-  if (status === "loading") {
-    return (
-      <div className="min-h-screen bg-[#F3F4F6] flex items-center justify-center font-[family-name:var(--font-poppins)]">
-        <p className="text-gray-500 text-sm animate-pulse">Memuat profil...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#F3F4F6] flex items-center justify-center p-4 md:p-8 font-[family-name:var(--font-poppins)]">
@@ -153,7 +136,7 @@ export default function ProfilePage() {
               <label className="block text-xs font-bold text-gray-600 mb-1.5 ml-1">Email Address (Unchangeable)</label>
               <input 
                 type="email" 
-                value={session?.user?.email || "email@contoh.com"}
+                value={email}
                 disabled
                 className="w-full bg-[#E5E7EB] text-gray-500 rounded-2xl px-5 py-3.5 text-sm cursor-not-allowed border-none focus:outline-none"
               />
